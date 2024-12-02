@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Guess the Brand</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #171616;
+        }
+        .game-container {
+            text-align: center;
+            background-color: rgb(255, 255, 255);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        #logo {
+            max-width: 250px;
+            max-height: 250px;
+            margin-bottom: 20px;
+        }
+        #word-display {
+            letter-spacing: 10px;
+            font-size: 24px;
+            margin: 20px 0;
+            user-select: none;
+            cursor: text;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+        #word-display span {
+            margin: 0 5px;
+            min-width: 20px;
+            display: inline-block;
+            text-align: center;
+        }
+        #message {
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .overlay-content {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 500px;
+        }
+        .overlay-content button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <img id="logo" src="" alt="Brand Logo"><br>
+        <div id="word-display">_ *</div>
+        <div id="message"></div>
+        <div id="score">Score: <span id="current-score">0</span> | Mistakes: <span id="mistakes">0</span></div>
+    </div>
+
+    <div id="game-over-overlay" class="overlay">
+        <div class="overlay-content">
+            <h2>Game Over</h2>
+            <p>You didn't guess all the brands!</p>
+            <button id="restart-game">Try Again</button>
+        </div>
+    </div>
+
+    <div id="win-overlay" class="overlay">
+        <div class="overlay-content">
+            <h2>Congratulations!</h2>
+            <p>You are a Certified Brandhead! 🏆</p>
+            <button id="play-again">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const allBrands = [
+            // Cars
+            { name: "BMW", category: "Cars", logoUrl: "./src/bmw.png" },
+            { name: "Tesla", category: "Cars", logoUrl: "./src/tesla.png" },
+            { name: "Mercedes", category: "Cars", logoUrl: "./src/mercedes.png" },
+            { name: "Ferrari", category: "Cars", logoUrl: "./src/ferrari.png" },
+            { name: "Audi", category: "Cars", logoUrl: "./src/audi.png" },
+            { name: "Toyota", category: "Cars", logoUrl: "./src/toyota.png" },
+            { name: "Honda", category: "Cars", logoUrl: "./src/honda.png" },
+            { name: "Lamborghini", category: "Cars", logoUrl: "./src/Lamborghini.png" },
+
+            // Tech
+            { name: "Apple", category: "Tech", logoUrl: "./src/apple.png" },
+            { name: "Google", category: "Tech", logoUrl: "./src/google.png" },
+            { name: "Microsoft", category: "Tech", logoUrl: "./src/microsoft.png" },
+            { name: "Nvidia", category: "Tech", logoUrl: "./src/nvidia.png" },
+
+            // Fashion
+            { name: "Nike", category: "Fashion", logoUrl: "./src/nike.png" },
+            {name: "Adidas", category: "Fashion", logoUrl: "./src/adidas.png" },
+            { name: "Chanel", category: "Fashion", logoUrl: "./src/chanel.png" },
+            { name: "Gucci", category: "Fashion", logoUrl: "./src/gucci.png" },
+            { name: "LouisVuitton", category: "Fashion", logoUrl: "./src/louisVuitton.png" },
+            { name: "Hermes", category: "Fashion", logoUrl: "./src/hermes.png" },
+            { name: "Burberry", category: "Fashion", logoUrl: "./src/burberry.png" }
+        ];
+
+        let currentGameBrands = [];
+        let currentBrandIndex = 0;
+        let currentBrand;
+        let currentGuess = [];
+        let score = 0;
+        let mistakes = 0;
+
+        const logoElement = document.getElementById('logo');
+        const wordDisplayElement = document.getElementById('word-display');
+        const messageElement = document.getElementById('message');
+        const currentScoreElement = document.getElementById('current-score');
+        const mistakesElement = document.getElementById('mistakes');
+        const gameOverOverlay = document.getElementById('game-over-overlay');
+        const winOverlay = document.getElementById('win-overlay');
+        const restartGameBtn = document.getElementById('restart-game');
+        const playAgainBtn = document.getElementById('play-again');
+
+        function selectRandomBrands() {
+            // Shuffle the array and take first 10
+            const shuffled = allBrands.sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, 10);
+        }
+
+        function initializeGame() {
+            // Reset game state
+            currentGameBrands = selectRandomBrands();
+            currentBrandIndex = 0;
+            score = 0;
+            mistakes = 0;
+            
+            // Reset display
+            currentScoreElement.textContent = score;
+            mistakesElement.textContent = mistakes;
+            
+            // Start first brand
+            loadNextBrand();
+        }
+
+        function loadNextBrand() {
+            if (currentBrandIndex >= currentGameBrands.length) {
+                // All brands guessed correctly
+                showWinScreen();
+                return;
+            }
+
+            currentBrand = currentGameBrands[currentBrandIndex];
+            logoElement.src = currentBrand.logoUrl;
+            
+            currentGuess = new Array(currentBrand.name.length).fill('_');
+            updateWordDisplay();
+            
+            messageElement.textContent = '';
+        }
+
+        function updateWordDisplay() {
+            wordDisplayElement.innerHTML = currentGuess.join(' ');
+        }
+
+        function showGameOverScreen() {
+            gameOverOverlay.style.display = 'flex';
+        }
+
+        function showWinScreen() {
+            winOverlay.style.display = 'flex';
+        }
+
+        // Event listeners for restart/play again buttons
+        restartGameBtn.addEventListener('click', () => {
+            gameOverOverlay.style.display = 'none';
+            initializeGame();
+        });
+
+        playAgainBtn.addEventListener('click', () => {
+            winOverlay.style.display = 'none';
+            initializeGame();
+        });
+
+        // Event listener for keypress on the entire document
+        document.addEventListener('keydown', (e) => {
+            // Ignore keypresses if overlay is showing
+            if (gameOverOverlay.style.display === 'flex' || 
+                winOverlay.style.display === 'flex') return;
+
+            // Check if the pressed key is a letter
+            if (/^[a-zA-Z]$/.test(e.key)) {
+                const guessLetter = e.key.toUpperCase();
+                const brandNameUpper = currentBrand.name.toUpperCase();
+
+                if (brandNameUpper.includes(guessLetter)) {
+                    // Correct guess
+                    currentGuess = currentBrand.name.split('').map((letter, index) => 
+                        letter.toUpperCase() === guessLetter ? letter : currentGuess[index]
+                    );
+                    updateWordDisplay();
+
+                    // Check if word is complete
+                    if (currentGuess.join('') === currentBrand.name) {
+                        score++;
+                        currentScoreElement.textContent = score;
+                        currentBrandIndex++;
+                        loadNextBrand();
+                    }
+                } else {
+                    // Incorrect guess
+                    mistakes++;
+                    mistakesElement.textContent = mistakes;
+                    messageElement.textContent = 'Wrong Guess! ❌';
+                    messageElement.style.color = 'red';
+
+                    // Check for game over conditions
+                    if (mistakes === 3) {
+                        showGameOverScreen();
+                    }
+                }
+            }
+        });
+
+        // Start the game
+        initializeGame();
+    </script>
+</body>
+</html>
+
